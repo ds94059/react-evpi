@@ -1,6 +1,6 @@
 import './App.css';
 import { Button, Card, Spinner } from 'react-bootstrap';
-import { Check } from 'react-bootstrap-icons';
+import * as Icon from 'react-bootstrap-icons';
 import { useState, useEffect } from 'react';
 import webSocket from "socket.io-client"
 
@@ -15,8 +15,7 @@ let updateId: NodeJS.Timeout;
 function App() {
 	const socket = webSocket(endPoint);
 	const [isUpdating, setIsUpdating] = useState(false);
-	const [isNewUpdate, setIsNewUpdate] = useState(false);
-
+	const [isNewUpdate, setIsNewUpdate] = useState(true);
 	useEffect(() => loginToMender, [])
 
 	const loginToMender = () => {
@@ -71,7 +70,6 @@ function App() {
 			}
 		})
 	}
-
 	return (
 		<div className="App">
 			<header className="App-header">
@@ -93,20 +91,36 @@ function App() {
         >
           Learn React
         </a> */}
-				{/* <Spinner animation="border" role="status" style={{ color: '#ffffff' }}>
-					<span className="visually-hidden">Loading...</span>
-				</Spinner> */}
-				<Card style={{ 'alignItems': 'center' }}>
-					Latest version
-					<Check color='Green' size={96} />
+				<div className="row-content">
+					<Button
+						className="rounded-circle circle"
+						variant='warning'
+						onClick={clickUpdate}
+						disabled={isUpdating || !isNewUpdate}
+					>
+						{
+							isUpdating ?
+								<Spinner animation="border" role="status" style={{ color: '#ffffff' }}>
+									<span className="visually-hidden">Loading...</span>
+								</Spinner>
+								: isNewUpdate ? 'Update' : <Icon.Check2Circle color='black' size={72} />
+						}
+					</Button>
+				</div>
+				<Card style={{ width: '300px', marginTop: '20px' }}>
+					<Card.Body>
+						{isNewUpdate ?
+							isUpdating ? 'Updating...' : 'New update'
+							: 'Latest version'}
+						{
+							isNewUpdate ?
+								<Icon.ExclamationCircle color='red' size={36} style={{ marginLeft: '20px' }} /> :
+								<Icon.Check color='Green' size={64} />
+						}
+
+
+					</Card.Body>
 				</Card>
-				<Button
-					variant='warning'
-					onClick={clickUpdate}
-					disabled={isUpdating || !isNewUpdate}
-				>
-					{isUpdating ? 'Updating...' : 'Update'}
-				</Button>
 			</header>
 		</div >
 	);
