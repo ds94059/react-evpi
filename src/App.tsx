@@ -9,13 +9,14 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const endPoint = "http://127.0.0.1:5000";
 let JWT = "";
 let newUpdate = false;
+let updating = false;
 
 let updateId: NodeJS.Timeout;
 
 function App() {
 	const socket = webSocket(endPoint);
 	const [isUpdating, setIsUpdating] = useState(false);
-	const [isNewUpdate, setIsNewUpdate] = useState(true);
+	const [isNewUpdate, setIsNewUpdate] = useState(false);
 	useEffect(() => loginToMender, [])
 
 	const loginToMender = () => {
@@ -28,12 +29,22 @@ function App() {
 				if (JWT) {
 					console.log('login success')
 					updateId = setInterval(() => {
-						if (!newUpdate)
-							checkUpdate();
+						checkUpdate();
 					}, 10000)
 				}
 				else
 					console.log('login failed')
+			})
+			socket.on('update', msg => {
+				if (msg === 'true') {
+					setIsNewUpdate(true);
+					console.log('new update')
+				}
+				else {
+					updating = false;
+					setIsUpdating(false);
+					setIsNewUpdate(false);
+				}
 			})
 			socket.emit('message', 'login');
 			console.log('login...')
@@ -44,31 +55,24 @@ function App() {
 
 	const clickUpdate = () => {
 		console.log('Updating...')
+		updating = true;
 		setIsUpdating(true);
 		socket.emit('message', 'continue');
 		setTimeout(() => {
 			socket.emit('message', 'pause');
 			console.log('pause installing');
-			newUpdate = false;
-			setIsUpdating(false);
-			setIsNewUpdate(false);
+
+			socket.emit('message', 'rviz2')
+			// newUpdate = false;
+			// setIsUpdating(false);
+			// setIsNewUpdate(false);
+			// socket.emit('message', 'rviz2');
 		}, 10000)
 	}
 
 	const checkUpdate = () => {
 		console.log("check for update...")
 		socket.emit('checkUpdate', JWT);
-		socket.on('update', msg => {
-			if (msg === 'true') {
-				newUpdate = true;
-				setIsNewUpdate(true);
-				console.log('new update')
-			}
-			else {
-				newUpdate = false;
-				setIsNewUpdate(false);
-			}
-		})
 	}
 	return (
 		<div className="App">
@@ -77,12 +81,6 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to reload.nooooo
         </p>
-        <Button variant='danger'>
-          Primary
-        </Button>
-        <Card>
-          <Card.Body style={{ color: "#000000" }}>This is some text within a card body.</Card.Body>
-        </Card>
         <a
           className="App-link"
           href="https://reactjs.org"
@@ -117,8 +115,6 @@ function App() {
 								<Icon.ExclamationCircle color='red' size={36} style={{ marginLeft: '20px' }} /> :
 								<Icon.Check color='Green' size={64} />
 						}
-
-
 					</Card.Body>
 				</Card>
 			</header>
