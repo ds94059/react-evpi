@@ -1,14 +1,15 @@
 import './App.css';
-import { Button, Card, Spinner } from 'react-bootstrap';
+import { Button, Card, Spinner, ProgressBar } from 'react-bootstrap';
 import * as Icon from 'react-bootstrap-icons';
 import { useState, useEffect } from 'react';
 import webSocket from "socket.io-client"
+import LinearProgress from '@mui/material/LinearProgress';
+
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const endPoint = "http://127.0.0.1:5000";
 let JWT = "";
-let newUpdate = false;
 let updating = false;
 
 let updateId: NodeJS.Timeout;
@@ -20,6 +21,13 @@ function App() {
 	useEffect(() => loginToMender, [])
 
 	const loginToMender = () => {
+		Notification.requestPermission();
+		// setTimeout(() => {
+		// 	const options = {
+		// 		body: "Version X.X.X release.",
+		// 	};
+		// 	new Notification("New update available.", options);
+		// }, 1000);
 		clearInterval(updateId);
 		if (socket) {
 			console.log('connect success');
@@ -27,7 +35,7 @@ function App() {
 				JWT = msg
 				console.log(JWT)
 				if (JWT) {
-					console.log('login success')
+					console.log('login success');
 					updateId = setInterval(() => {
 						checkUpdate();
 					}, 10000)
@@ -37,8 +45,13 @@ function App() {
 			})
 			socket.on('update', msg => {
 				if (msg === 'true') {
-					setIsNewUpdate(true);
-					console.log('new update')
+					if (!updating) {
+						setIsNewUpdate(true);
+						const options = {
+							body: "Version X.X.X release.",
+						};
+						new Notification("New update available.", options);
+					}
 				}
 				else {
 					updating = false;
@@ -58,16 +71,21 @@ function App() {
 		updating = true;
 		setIsUpdating(true);
 		socket.emit('message', 'continue');
-		setTimeout(() => {
-			socket.emit('message', 'pause');
-			console.log('pause installing');
 
-			socket.emit('message', 'rviz2')
-			// newUpdate = false;
-			// setIsUpdating(false);
-			// setIsNewUpdate(false);
-			// socket.emit('message', 'rviz2');
-		}, 10000)
+		const timerId = setInterval(() => {
+			if (!updating) {
+				console.log('fininsh updating and pause installing');
+				socket.emit('message', 'pause');
+				socket.emit('message', 'rviz2');
+				clearInterval(timerId);
+			}
+		}, 5000)
+		// setTimeout(() => {
+		// 	// newUpdate = false;
+		// 	// setIsUpdating(false);
+		// 	// setIsNewUpdate(false);
+
+		// }, 15000)
 	}
 
 	const checkUpdate = () => {
@@ -112,8 +130,13 @@ function App() {
 							: 'Latest version'}
 						{
 							isNewUpdate ?
-								<Icon.ExclamationCircle color='red' size={36} style={{ marginLeft: '20px' }} /> :
-								<Icon.Check color='Green' size={64} />
+								isUpdating ?
+									null : <Icon.ExclamationCircle color='red' size={36} style={{ marginLeft: '20px' }} />
+								: <Icon.Check color='Green' size={64} />
+
+						}
+						{isUpdating ?
+							<LinearProgress style={{ marginTop: '20px' }} /> : null
 						}
 					</Card.Body>
 				</Card>
